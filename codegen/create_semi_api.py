@@ -1,7 +1,9 @@
-
+""" Scipt to create a ...
+"""
 
 import os
 import sys
+import ctypes  # not actually used, but handy to have imported during dev
 
 import headerparser
 from annotations import parse_anotations
@@ -49,7 +51,7 @@ assert len(constants) == len(superset)
 for c2 in parser2.constants.values():
     if c2.pname in constants:
         assert c2.value == constants[c2.pname]
-print('All constants that occur in both namespaces have equal values.')
+print('Hooray! All constants that occur in both namespaces have equal values.')
 
 
 
@@ -100,101 +102,332 @@ EASY_TYPES = {  'void': (type(None), 'c_voidp'),  # only for output
                 'GLclampf': (float, 'c_float'),
              }
 
+# Types that dont map 1-on-1 to Python values, but that we know
+# how to set the ctypes argtypes for. Together with the EASY_TYPES
+# we should cover all types that ES 2.0 uses.
+HARDER_TYPES = {
+                'GLenum*':('', 'POINTER(ctypes.c_int)'),
+                'GLboolean*':('', 'POINTER(ctypes.c_bool)'),
+                'GLuint*':('', 'POINTER(ctypes.c_uint)'),
+                'GLint*':('', 'POINTER(ctypes.c_int)'),
+                'GLsizei*':('', 'POINTER(ctypes.c_int)'),
+                'GLfloat*':('', 'POINTER(ctypes.c_float)'),
+                
+                'GLubyte*':('', 'c_char_p'),
+                'GLchar*':('', 'c_char_p'),
+                'GLvoid*':('', 'c_void_p'),  # or c_voidp?
+                'GLvoid**':('', 'POINTER(ctypes.c_void_p)'),
+                'GLintptr':('', 'c_longlong'), 
+                'GLsizeiptr':('', 'c_longlong'),
+                }
+
+
+KNOWN_TYPES = EASY_TYPES.copy()
+KNOWN_TYPES.update(HARDER_TYPES)
+
+
+FUNC_WITH_ARRAY = """
+if not data.flags['C_CONTIGUOUS']:
+    data = data.copy('C')
+data_ = data
+%s = data_.size
+data = data_.ctypes.data
+""".strip()
+
 
 # Keep track of what webGL names we "used"
 used_webgl_names = set()
 
 # Also keep track of what functions we could handle automatically, 
-# and which not. Just for reporting
-functions_auto = []
-functions_anno = []
-functions_todo = []
-
-# List of function argtypes
-function_argtypes = []
+# and which not. Just for reporting.
+functions_auto = set()
+functions_anno = set()
+functions_todo = set()
 
 
-# Process function definitions of ES 2.0
-lines = []
-for name in parser1.function_names:
-    if name in IGNORE_FUNCTIONS:
-        continue
+
+class FunctionDescription:
+    def __init__(self, name, es2func, wglfunc, annfunc):
+        self.name = name
+        self.es2 = es2func
+        self.wgl = wglfunc
+        self.ann = annfunc
+        self.args = []
+
+
+def combine_function_definitions():
+    """ Process function definitions of ES 2.0, WebGL and annotations.
+    We try to combine information from these three sources to find the
+    arguments for the Python API. In this "merging" process we also
+    check for inconsistencies between the API definitions.
+    """
+    functions = []
     
-    # Get es2 function
-    es2func = parser1.functions[name]
-    
-    # Get webgl version
-    lookupname = WEBGL_EQUIVALENTS.get(es2func.pname, es2func.pname)
-    wglfunc = parser2.functions.get(lookupname, None)
-    if wglfunc:
-        used_webgl_names.add(lookupname)
-    else:
-        print('WARNING: %s not available in WebGL' % es2func.pname)
-    
-    # Add line
-    argnames = [arg.name for arg in es2func.args[1:]]
-    argnamesstr = ', '.join(argnames)
-    lines.append('def %s(%s):' % (es2func.pname, argnamesstr))
-    argtypes = [EASY_TYPES.get(arg.ctype, None) for arg in es2func.args]
-    # 
-    if es2func.pname in annotations:
-        functions_anno.append(es2func.pname)
-        anno = annotations[es2func.pname]
-        # Get args
-        cargstr = ', '.join(argnames)
-        pargstr = ', '.join(anno.args)
-        callline = '%s_lib.%s(%s)' % (prefix, es2func.glname, cargstr)
-        for line in anno.get_lines(callline, 'desktop'):
-            lines.append('    '+line)
-        # todo: Set argtypes
-        
-    elif es2func.group:
-        functions_todo.append(es2func.pname)
-        lines.append('    # todo: This is a group')
-    elif None in argtypes:
-        functions_todo.append(es2func.pname)
-        lines.append('    # todo: Not all easy types!')
-    elif wglfunc and argnames != [arg.name for arg in wglfunc.args[1:]]:
-        functions_todo.append(es2func.pname)
-        lines.append('    # todo: ES 2.0 and WebGL args do not match!')
-    else:
-        functions_auto.append(es2func.pname)
-        # Get prefix
-        prefix = ''
-        if argtypes[0][0] != type(None):
-            prefix = 'return '
-        elif es2func.pname.startswith('get'):
-            raise RuntimeError('Get func returns void?')
-        # Set string
-        argstr = ', '.join(argnames)
-        #argstr = ', '.join(['%s(%s)' % (t[0].__name__, n) for (t,n) in zip(argtypes[1:], argnames)])
-        lines.append('    %s_lib.%s(%s)' % (prefix, es2func.glname, argstr))
-        # Set argtypes
-        if argtypes[1:]:
-            argstr = ', '.join(['ctypes.%s' % t[1] for t in argtypes[1:]])
-            function_argtypes.append('_lib.%s.argtypes = %s,' % (es2func.glname, argstr))
-        else:
-            function_argtypes.append('_lib.%s.argtypes = ()' % es2func.glname)
-    
-    # Go over groups of ES 2.0 funcions
-    for func in [es2func, wglfunc]:
-        if func is None: 
+    for name in parser1.function_names:
+        if name in IGNORE_FUNCTIONS:
             continue
-        group = func.group or [func]
-        for f in group:
-            
-            # Check opengl
-            if f.oname.startswith('gl') and not hasattr(GL, f.glname):
-                print('WARNING: %s seems not available in PyOpenGL' % f.pname)
-            
-            # Add line
-            argnames = ['%s %s' % (arg.ctype, arg.name) for arg in f.args[1:]]
-            argnamesstr = ', '.join(argnames)
-            lines.append('    # %s = %s(%s)' % (f.args[0].ctype, f.oname, argnamesstr))
+        
+        # Get es2 function
+        es2func = parser1.functions[name]
+        
+        # Get webgl version
+        lookupname = WEBGL_EQUIVALENTS.get(es2func.pname, es2func.pname)
+        wglfunc = parser2.functions.get(lookupname, None)
+        if wglfunc:
+            used_webgl_names.add(lookupname)
+        else:
+            print('WARNING: %s not available in WebGL' % es2func.pname)
+        
+        # Get annotated version
+        annfunc = annotations.get(es2func.pname, None)
+        
+        # Create description instance
+        des = FunctionDescription(name, es2func, wglfunc, annfunc)
+        functions.append(des)
+        
+        # Get information about arguments
+        if True:
+            argnames_es2 = [arg.name for arg in es2func.args[1:]]
+            argtypes_es2 = [EASY_TYPES.get(arg.ctype, None) for arg in es2func.args]
+        if wglfunc:
+            argnames_wgl = [arg.name for arg in wglfunc.args[1:]]
+            argtypes_wgl = [EASY_TYPES.get(arg.ctype, None) for arg in wglfunc.args]
+        if annfunc:
+            argnames_ann = annfunc.args
+        
+        # Process 
+        if wglfunc and argnames_es2 == argnames_wgl:
+            if annfunc and argnames_ann != argnames_es2:
+                print('WARNING: %s: Annotation overload even though webgl and es2 match.'%name)
+            des.args = argnames_es2
+        elif wglfunc:
+            #print('WARNING: %s: assuming wgl args.'%name)
+            des.args = argnames_wgl
+        else:
+            print('WARNING: %s: Could not determine args!!'%name)
+        
+        
+        # Go over all functions to test if they are in OpenGL
+        for func in [es2func, wglfunc]:
+            if func is None: 
+                continue
+            group = func.group or [func]
+            for f in group:
+                # Check opengl
+                if f.oname.startswith('gl') and not hasattr(GL, f.glname):
+                    print('WARNING: %s seems not available in PyOpenGL' % f.pname)
     
-    # A line between each function
-    lines.append('')
+    return functions
 
+
+
+class ApiGenerator:
+    PREAMBLE = ""
+    def __init__(self):
+        self.lines = []
+    
+    def save(self):
+        with open(self.filename, 'wb') as f:
+            for line in self.PREAMBLE.splitlines():
+                f.write(line[4:].encode('utf-8')+b'\n')
+            for line in self.lines:
+                f.write(line.encode('utf-8')+b'\n')
+    
+    def add_function(self, des):
+        raise NotImplementedError()
+
+
+class MainApiGenerator(ApiGenerator):
+    filename = os.path.join(THISDIR, 'api_main.py')
+    
+    def add_function(self, des):
+        argstr = ', '.join(des.args)
+        self.lines.append('def %s(%s):' % (des.name, argstr))
+        self.lines.append('    return PROXY["%s"](%s)' % (des.name, argstr))
+        self.lines.append('')
+
+
+class DesktopApiGenerator(ApiGenerator):
+    filename = os.path.join(THISDIR, 'api_desktop.py')
+    write_c_sig = True
+    
+    PREAMBLE = """
+    import ctypes.util
+    fname = ctypes.util.find_library('GL')
+    _lib = ctypes.cdll.LoadLibrary(fname)
+    """
+    
+    def _write_argtypes(self, es2func):
+        lines = self.lines
+        ce_arg_types = [arg.ctype for arg in es2func.args[1:]]
+        ct_arg_types = [KNOWN_TYPES.get(arg.ctype, None) for arg in es2func.args]
+         # Set argument types on ctypes function
+        if None in ct_arg_types:
+            lines.append('# todo: unknown argtypes')
+        elif es2func.group:
+            lines.append('# todo: oops, dont set argtypes for group!')
+        else:
+            if ct_arg_types[1:]:
+                argstr = ', '.join(['ctypes.%s' % t[1] for t in ct_arg_types[1:]])
+                lines.append('_lib.%s.argtypes = %s,' % (es2func.glname, argstr))
+            else:
+                lines.append('_lib.%s.argtypes = ()' % es2func.glname)
+        # Set output arg (if available)
+        if ct_arg_types[0][0] != type(None):
+            lines.append('_lib.%s.restype = ctypes.%s' % (es2func.glname, ct_arg_types[0][1]))
+    
+    def add_function(self, des):
+        if des.es2.group:
+            for es2func in des.es2.group:
+                self._write_argtypes(es2func)
+            self._add_function_group(des)
+        else:
+            self._write_argtypes(des.es2)
+            self._add_function_single(des, des.es2)
+        self.lines.append('\n')  # two lines between each function
+    
+    def _add_function_single(self, des, es2func):
+        lines = self.lines
+        
+        # Get names and types of C-API
+        ce_arg_types = [arg.ctype for arg in es2func.args[1:]]
+        ce_arg_names = [arg.name for arg in es2func.args[1:]]
+        ct_arg_types = [KNOWN_TYPES.get(arg.ctype, None) for arg in es2func.args]
+        ct_arg_types_easy = [EASY_TYPES.get(arg.ctype, None) for arg in es2func.args]
+        
+        # Write C function signature, for debugging and development
+        if self.write_c_sig:
+            argnamesstr = ', '.join([c_type+' '+c_name for c_type, c_name in zip(ce_arg_types, ce_arg_names)])
+            lines.append('# %s = %s(%s)' % (es2func.args[0].ctype, es2func.oname, argnamesstr))
+        
+        # Write Python function def
+        lines.append('def %s(%s):' % (es2func.pname,  ', '.join(des.args)))
+        
+        # Construct C function call
+        cargs = [arg.name for arg in des.es2.args[1:]]
+        cargstr = ', '.join(cargs)
+        callline = '_lib.%s(%s)' % (des.es2.glname, cargstr)
+        
+        # Now write the body of the function ...
+        if des.ann:
+            prefix = 'res = '
+            # Annotation available
+            functions_anno.add(des.name)
+            lines.extend( des.ann.get_lines(prefix+callline, 'desktop') )
+        
+        elif es2func.group:
+            # Group?
+            functions_todo.add(des.name)
+            lines.append('    pass  # todo: Oops. this is a group!')
+        elif None in ct_arg_types_easy:
+            functions_todo.add(des.name)
+            lines.append('    pass  # todo: Not all easy types!')
+        elif des.args != [arg.name for arg in des.wgl.args[1:]]:
+            functions_todo.add(des.name)
+            lines.append('    pass  # todo: ES 2.0 and WebGL args do not match!')
+        else:
+            # This one is easy!
+            functions_auto.add(des.name)
+            # Get prefix
+            prefix = ''
+            if ct_arg_types[0][0] != type(None):
+                prefix = 'return '
+            elif des.es2.pname.startswith('get'):
+                raise RuntimeError('Get func returns void?')
+            # Set string
+            lines.append('    ' + prefix + callline)
+    
+    def _add_function_group(self, des):
+        lines = self.lines
+        handled = True
+        
+        if des.name == 'uniform':
+            for t in ('float', 'int'):
+                for i in (1,2,3,4):
+                    args = ', '.join(['v%i'%j for j in range(1,i+1)])
+                    sig = '%i%s(location, %s)' % (i, t[0], args)
+                    lines.append('def uniform%s:' % sig)
+                    lines.append('    _lib.glUniform%s' % sig)
+            for t in ('float', 'int'):
+                for i in (1,2,3,4):
+                    lines.append('def uniform%i%sv(location, value):' % (i, t[0]))
+                    lines.append('    values = [val for val in values]')
+                    lines.append('    values = (ctypes.c_%s*len(values))(*values)' % t)
+                    lines.append('    _lib.glUniform%i%sv(location, values)' % (i, t[0]))
+        elif des.name == 'uniformMatrix':
+            for i in (2,3,4):
+                lines.append('def uniformMatrix%ifv(location, count, transpose, values):' % i)
+                lines.append('    values = [val for val in values]')
+                lines.append('    values = (ctypes.c_float*len(values))(*values)')
+                lines.append('    _lib.glUniformMatrix%ifv(location, count, transpose, values)' % i)
+        elif des.name == 'getUniform':
+            for t in ('float', 'int'):
+                lines.append('def getUniform%sv(program, location):' % t[0])
+                lines.append('    d = -99999  # Note: this is a bit dangerous')
+                lines.append('    values = (ctypes.c_%s*16)(*[d for i in range(16)])' % t)
+                lines.append('    _lib.glGetUniform%sv(program, location, values)' % t[0])
+                lines.append('    return tuple([val for val in values if val!=d])')
+        
+        elif des.name == 'vertexAttrib':
+            for i in (1,2,3,4):
+                args = ', '.join(['v%i'%j for j in range(1,i+1)])
+                sig = '%if(index, %s)' % (i, args)
+                lines.append('def vertexAttrib%s:' % sig)
+                lines.append('    _lib.glVertexAttrib%s' % sig)
+        elif des.name == 'getVertexAttr':
+            for t in ('float', 'int'):
+                lines.append('def getVertexAttr%sv(index, pname):' % t[0])
+                lines.append('    d = -99999  # Note: this is a bit dangerous')
+                lines.append('    values = (ctypes.c_%s*4)(*[d for i in range(4)])' % t)
+                lines.append('    _lib.glGetVertexAttr%sv(index, pname, values)' % t[0])
+                lines.append('    return tuple([val for val in values if val!=d])')
+        
+        elif des.name == 'texParameter':
+            for t in ('float', 'int'):
+                lines.append('def texParameter%s(target, pname, param):' % t[0])
+                lines.append('    _lib.glTexParameter%s(target, pname, param)' % t[0])
+        elif des.name == 'getTexParameter':
+            for t in ('float', 'int'):
+                lines.append('def getTexParameter%sv(target, pname):' % t[0])
+                lines.append('    params = (ctypes.c_%s*1)()')
+                lines.append('    _lib.glGetTexParameter%sv(target, pname, params)' % t[0])
+                lines.append('    return params[0]')
+        
+        else:
+            handled = False
+        
+        if handled:
+            functions_auto.add(des.name)
+        else:
+            functions_todo.add(des.name)
+            lines.append('# todo: Dont know group %s' % des.name)
+
+
+class AngleApiGenrator(DesktopApiGenerator):
+    filename = os.path.join(THISDIR, 'api_angle.py')
+    write_c_sig = True
+    
+    PREAMBLE = """
+    import ctypes.util
+    fname = ctypes.util.find_library('gles')
+    _lib = ctypes.cdll.LoadLibrary(fname)
+    """
+
+
+## Generate
+
+# Get functions
+functions = combine_function_definitions()
+
+# Generate
+for Gen in [MainApiGenerator, DesktopApiGenerator, AngleApiGenrator]:
+    gen = Gen()
+    for des in functions:
+        gen.add_function(des)
+    gen.save()
+
+
+## Reporting
 
 # Check which WebGL functions we did not find/use
 for name in set(parser2.function_names).difference(used_webgl_names):
@@ -204,14 +437,6 @@ for name in set(parser2.function_names).difference(used_webgl_names):
 print('Could generate %i functions automatically, and %i with annotations' %
       (len(functions_auto), len(functions_anno)))
 print('Need more info for %i functions.' % len(functions_todo))
-
-# Write file
-with open('semi_api.py', 'wt') as f:
-    for line in function_argtypes:
-        f.write(line + '\n')
-    f.write('\n\n')
-    for line in lines:
-        f.write(line + '\n')
-
-
+if not functions_todo:
+    print('Hooray! All %i functions are covered!' % len(functions))
 
