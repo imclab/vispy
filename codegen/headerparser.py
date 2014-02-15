@@ -370,6 +370,8 @@ class Argument:
         else:
             name = components[-1]
             type = components[-2]
+            if 'const' in type:
+                type = components[-3]  # glShaderSource has "const GLchar* const* string"
         # Store stuff
         self.orig = tuple(components)
         self.name = name.lstrip('*')
