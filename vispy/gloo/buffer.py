@@ -12,6 +12,8 @@ from ..util import is_string, logger
 from . import gl
 from . import GLObject
 
+from vispy.gloo import gl2  # quick and dirty for dev
+
 
 # ------------------------------------------------------------ Buffer class ---
 class Buffer(GLObject):
@@ -131,31 +133,37 @@ class Buffer(GLObject):
     def _create(self):
         """ Create buffer on GPU """
         if not self._handle:
-            self._handle = gl.glGenBuffers(1)
+            #self._handle = gl.glGenBuffers(1)
+            self._handle = gl2.createBuffer()
 
     def _delete(self):
         """ Delete buffer from GPU """
-        gl.glDeleteBuffers(1, [self._handle])
+        #gl.glDeleteBuffers(1, [self._handle])
+        gl2.glDeleteBuffer(self._handle)
 
     def _activate(self):
         """ Bind the buffer to some target """
-        gl.glBindBuffer(self._target, self._handle)
+        #gl.glBindBuffer(self._target, self._handle)
+        gl2.bindBuffer(self._target, self._handle)
 
     def _deactivate(self):
         """Unbind the current bound buffer"""
-        gl.glBindBuffer(self._target, 0)
+        #gl.glBindBuffer(self._target, 0)
+        gl2.bindBuffer(self._target, 0)
 
     def _update(self):
         """Upload all pending data to GPU"""
 
         # Bind buffer now
-        gl.glBindBuffer(self._target, self._handle)
+        #gl.glBindBuffer(self._target, self._handle)
+        gl2.bindBuffer(self._target, self._handle)
 
         # Allocate new size if necessary
         if self._need_resize:
             # This will only allocate the buffer on GPU
             # WARNING: we should check if this operation is ok
-            gl.glBufferData(self._target, self._nbytes, None, self._usage)
+            #gl.glBufferData(self._target, self._nbytes, None, self._usage)
+            gl2.bufferData(self._target, self._nbytes, self._usage)
             logger.debug("Creating a new buffer (%d) of %d bytes"
                          % (self._handle, self._nbytes))
             self._need_resize = False
@@ -166,14 +174,16 @@ class Buffer(GLObject):
             logger.debug("Uploading %d bytes at offset %d to buffer (%d)"
                          % (nbytes, offset, self._handle))
             try:
-                gl.glBufferSubData(self._target, offset, nbytes, data)
+                #gl.glBufferSubData(self._target, offset, nbytes, data)
+                gl2.bufferSubData(self._target, offset, data)
             except Exception as error:
                 # This might be due to a driver error (seen on ATI), issue #64.
                 # We try to detect this, and if we can use glBufferData instead
                 if (hasattr(error, 'err') and
                         error.err == gl.GL_INVALID_VALUE and
                         offset == 0 and nbytes == self._nbytes):
-                    gl.glBufferData(self._target, nbytes, data, self._usage)
+                    #gl.glBufferData(self._target, nbytes, data, self._usage)
+                    gl2.bufferData(self._target, data, self._usage)
                 else:
                     raise
 
