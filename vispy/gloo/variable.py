@@ -19,6 +19,7 @@ from .buffer import ClientVertexBuffer, VertexBuffer
 from .texture import Texture, Texture2D, TextureCubeMap, Texture3D
 from ..util import logger
 
+from vispy.gloo import gl2
 
 # todo: support arrays of uniforms
 
@@ -137,24 +138,42 @@ class Uniform(Variable):
     # and Program manimpulates the private attributes of these objects.
 
     _ufunctions = {
-        gl.GL_FLOAT: (gl.glUniform1fv, 1),
-        gl.GL_FLOAT_VEC2: (gl.glUniform2fv, 2),
-        gl.GL_FLOAT_VEC3: (gl.glUniform3fv, 3),
-        gl.GL_FLOAT_VEC4: (gl.glUniform4fv, 4),
-        gl.GL_INT: (gl.glUniform1iv, 1),
-        gl.GL_INT_VEC2: (gl.glUniform2iv, 2),
-        gl.GL_INT_VEC3: (gl.glUniform3iv, 3),
-        gl.GL_INT_VEC4: (gl.glUniform4iv, 4),
-        gl.GL_BOOL: (gl.glUniform1iv, 1),
-        gl.GL_BOOL_VEC2: (gl.glUniform2iv, 2),
-        gl.GL_BOOL_VEC3: (gl.glUniform3iv, 3),
-        gl.GL_BOOL_VEC4: (gl.glUniform4iv, 4),
-        gl.GL_FLOAT_MAT2: (gl.glUniformMatrix2fv, 4),
-        gl.GL_FLOAT_MAT3: (gl.glUniformMatrix3fv, 9),
-        gl.GL_FLOAT_MAT4: (gl.glUniformMatrix4fv, 16),
-        gl.GL_SAMPLER_2D: (gl.glUniform1i, 1),
-        gl.GL_SAMPLER_CUBE: (gl.glUniform1i, 1),
-        gl.ext.GL_SAMPLER_3D: (gl.glUniform1i, 1),
+#         gl.GL_FLOAT: (gl.glUniform1fv, 1),
+#         gl.GL_FLOAT_VEC2: (gl.glUniform2fv, 2),
+#         gl.GL_FLOAT_VEC3: (gl.glUniform3fv, 3),
+#         gl.GL_FLOAT_VEC4: (gl.glUniform4fv, 4),
+#         gl.GL_INT: (gl.glUniform1iv, 1),
+#         gl.GL_INT_VEC2: (gl.glUniform2iv, 2),
+#         gl.GL_INT_VEC3: (gl.glUniform3iv, 3),
+#         gl.GL_INT_VEC4: (gl.glUniform4iv, 4),
+#         gl.GL_BOOL: (gl.glUniform1iv, 1),
+#         gl.GL_BOOL_VEC2: (gl.glUniform2iv, 2),
+#         gl.GL_BOOL_VEC3: (gl.glUniform3iv, 3),
+#         gl.GL_BOOL_VEC4: (gl.glUniform4iv, 4),
+#         gl.GL_FLOAT_MAT2: (gl.glUniformMatrix2fv, 4),
+#         gl.GL_FLOAT_MAT3: (gl.glUniformMatrix3fv, 9),
+#         gl.GL_FLOAT_MAT4: (gl.glUniformMatrix4fv, 16),
+#         gl.GL_SAMPLER_2D: (gl.glUniform1i, 1),
+#         gl.GL_SAMPLER_CUBE: (gl.glUniform1i, 1),
+#         gl.ext.GL_SAMPLER_3D: (gl.glUniform1i, 1),
+        gl.GL_FLOAT: (gl2.uniform1fv, 1),
+        gl.GL_FLOAT_VEC2: (gl2.uniform2fv, 2),
+        gl.GL_FLOAT_VEC3: (gl2.uniform3fv, 3),
+        gl.GL_FLOAT_VEC4: (gl2.uniform4fv, 4),
+        gl.GL_INT: (gl2.uniform1iv, 1),
+        gl.GL_INT_VEC2: (gl2.uniform2iv, 2),
+        gl.GL_INT_VEC3: (gl2.uniform3iv, 3),
+        gl.GL_INT_VEC4: (gl2.uniform4iv, 4),
+        gl.GL_BOOL: (gl2.uniform1iv, 1),
+        gl.GL_BOOL_VEC2: (gl2.uniform2iv, 2),
+        gl.GL_BOOL_VEC3: (gl2.uniform3iv, 3),
+        gl.GL_BOOL_VEC4: (gl2.uniform4iv, 4),
+        gl.GL_FLOAT_MAT2: (gl2.uniformMatrix2fv, 4),
+        gl.GL_FLOAT_MAT3: (gl2.uniformMatrix3fv, 9),
+        gl.GL_FLOAT_MAT4: (gl2.uniformMatrix4fv, 16),
+        gl.GL_SAMPLER_2D: (gl2.uniform1i, 1),
+        gl.GL_SAMPLER_CUBE: (gl2.uniform1i, 1),
+        gl.ext.GL_SAMPLER_3D: (gl2.uniform1i, 1),
     }
 
     def __init__(self, name, gtype):
@@ -246,12 +265,14 @@ class Uniform(Variable):
             # Always enable texture
             texture = self.data
             unit = self.texture_unit
-            gl.glActiveTexture(gl.GL_TEXTURE0 + unit)
+            #gl.glActiveTexture(gl.GL_TEXTURE0 + unit)
+            gl2.activeTexture(gl.GL_TEXTURE0 + unit)
             program.activate_object(texture)
             # Upload uniform only of needed
             if not self._dirty:
                 return
-            gl.glUniform1i(self._loc, unit)
+            #gl.glUniform1i(self._loc, unit)
+            gl2.uniform1i(self._loc, unit)
 
         # Regular uniform
         else:
@@ -274,10 +295,14 @@ class Attribute(Variable):
     # and Program manimpulates the private attributes of these objects.
 
     _afunctions = {
-        gl.GL_FLOAT: gl.glVertexAttrib1f,
-        gl.GL_FLOAT_VEC2: gl.glVertexAttrib2f,
-        gl.GL_FLOAT_VEC3: gl.glVertexAttrib3f,
-        gl.GL_FLOAT_VEC4: gl.glVertexAttrib4f
+#         gl.GL_FLOAT: gl.glVertexAttrib1f,
+#         gl.GL_FLOAT_VEC2: gl.glVertexAttrib2f,
+#         gl.GL_FLOAT_VEC3: gl.glVertexAttrib3f,
+#         gl.GL_FLOAT_VEC4: gl.glVertexAttrib4f
+        gl.GL_FLOAT: gl2.vertexAttrib1f,
+        gl.GL_FLOAT_VEC2: gl2.vertexAttrib2f,
+        gl.GL_FLOAT_VEC3: gl2.vertexAttrib3f,
+        gl.GL_FLOAT_VEC4: gl2.vertexAttrib4f
     }
 
     def __init__(self, name, gtype):
@@ -361,7 +386,8 @@ class Attribute(Variable):
         if self._generic:
 
             # Tell OpenGL to use the constant value
-            gl.glDisableVertexAttribArray(self._loc)
+            #gl.glDisableVertexAttribArray(self._loc)
+            gl2.disableVertexAttribArray(self._loc)
 
             # Early exit
             if not self._dirty:
@@ -374,10 +400,12 @@ class Attribute(Variable):
         elif isinstance(self._data, ClientVertexBuffer):
 
             # Tell OpenGL to use the array and not the glVertexAttrib* value
-            gl.glEnableVertexAttribArray(self._loc)
+            #gl.glEnableVertexAttribArray(self._loc)
+            gl2.enableVertexAttribArray(self._loc)
 
             # Disable any VBO
-            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
+            #gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
+            gl2.bindBuffer(gl.GL_ARRAY_BUFFER, 0)
 
             # Early exit (pointer to CPU-data is still known by Program)
             if not self._dirty:
@@ -394,13 +422,10 @@ class Attribute(Variable):
             stride = self._data.stride
 
             # Apply (first disable any previous VertexBuffer)
-            gl.glVertexAttribPointer(
-                self._loc,
-                size,
-                gtype,
-                False,
-                stride,
-                data)
+            #gl.glVertexAttribPointer(self._loc, size, gtype, 
+            #                         False, stride, data)
+            gl2.vertexAttribPointer(self._loc, size, gtype, 
+                                    False, stride, data)
 
         # Regular vertex buffer or vertex buffer view
         else:
@@ -409,7 +434,8 @@ class Attribute(Variable):
             # todo: check offset = -1?
 
             # Tell OpenGL to use the array and not the glVertexAttrib* value
-            gl.glEnableVertexAttribArray(self._loc)
+            #gl.glEnableVertexAttribArray(self._loc)
+            gl2.enableVertexAttribArray(self._loc)
 
             # Enable the VBO
             program.activate_object(data)
@@ -433,13 +459,10 @@ class Attribute(Variable):
             offset = ctypes.c_void_p(offset)
 
             # Apply
-            gl.glVertexAttribPointer(
-                self._loc,
-                size,
-                gtype,
-                False,
-                stride,
-                offset)
+            #gl.glVertexAttribPointer(self._loc, size, gtype,
+            #                         False, stride, offset)
+            gl2.vertexAttribPointer(self._loc, size, gtype,
+                                    False, stride, offset)
 
         # Mark as uploaded
         self._dirty = False

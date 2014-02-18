@@ -22,6 +22,8 @@ from .variable import Attribute, Uniform
 from .shader import VertexShader, FragmentShader, ShaderError
 from ..util import is_string, logger
 
+from vispy.gloo import gl2
+
 
 class ProgramError(RuntimeError):
 
@@ -344,17 +346,19 @@ class Program(GLObject):
         Called after linking.
         """
 
-        count = gl.glGetProgramiv(self.handle, gl.GL_ACTIVE_ATTRIBUTES)
-
+        #count = gl.glGetProgramiv(self.handle, gl.GL_ACTIVE_ATTRIBUTES)
+        count = gl2.getProgramiv(self.handle, gl.GL_ACTIVE_ATTRIBUTES)
         # This match a name of the form "name[size]" (= array)
         regex = re.compile("""(?P<name>\w+)\s*(\[(?P<size>\d+)\])""")
 
         # Find active attributes
         self._active_attributes = {}
         for i in range(count):
-            name, size, gtype = gl.glGetActiveAttrib(self.handle, i)
-            loc = gl.glGetAttribLocation(self._handle, name)
-            name = name.decode('utf-8')
+            #name, size, gtype = gl.glGetActiveAttrib(self.handle, i)
+            name, size, gtype = gl2.getActiveAttrib(self.handle, i)
+            #loc = gl.glGetAttribLocation(self._handle, name)
+            loc = gl2.getAttribLocation(self._handle, name)
+#             name = name.decode('utf-8')  # not in gl2
             # This checks if the attribute is an array
             # Name will be something like xxx[0] instead of xxx
             m = regex.match(name)
@@ -379,7 +383,8 @@ class Program(GLObject):
         Called after linking.
         """
 
-        count = gl.glGetProgramiv(self.handle, gl.GL_ACTIVE_UNIFORMS)
+        #count = gl.glGetProgramiv(self.handle, gl.GL_ACTIVE_UNIFORMS)
+        count = gl2.getProgramiv(self.handle, gl.GL_ACTIVE_UNIFORMS)
 
         # This match a name of the form "name[size]" (= array)
         regex = re.compile("""(?P<name>\w+)\s*(\[(?P<size>\d+)\])\s*""")
@@ -387,9 +392,11 @@ class Program(GLObject):
         # Find active uniforms
         self._active_uniforms = {}
         for i in range(count):
-            name, size, gtype = gl.glGetActiveUniform(self.handle, i)
-            loc = gl.glGetUniformLocation(self._handle, name)
-            name = name.decode('utf-8')
+            #name, size, gtype = gl.glGetActiveUniform(self.handle, i)
+            name, size, gtype = gl2.getActiveUniform(self.handle, i)
+            #loc = gl.glGetUniformLocation(self._handle, name)
+            loc = gl2.getUniformLocation(self._handle, name)
+#             name = name.decode('utf-8')  # not in gl2
             # This checks if the uniform is an array
             # Name will be something like xxx[0] instead of xxx
             m = regex.match(name)
@@ -415,10 +422,12 @@ class Program(GLObject):
 
     # Behaver like a GLObject
     def _create(self):
-        self._handle = gl.glCreateProgram()
+        #self._handle = gl.glCreateProgram()
+        self._handle = gl2.createProgram()
 
     def _delete(self):
-        gl.glDeleteProgram(self._handle)
+        #gl.glDeleteProgram(self._handle)
+        gl2.deleteProgram(self._handle)
 
     def _activate(self):
         """
@@ -427,7 +436,8 @@ class Program(GLObject):
           * Upload pending variables.
         """
         # Use this program!
-        gl.glUseProgram(self._handle)
+        #gl.glUseProgram(self._handle)
+        gl2.useProgram(self._handle)
 
         # Mark as enabled, prepare to enable other objects
         self._active = True
@@ -456,7 +466,8 @@ class Program(GLObject):
         for ob in reversed(self._activated_objects):
             ob.deactivate()
         self._activated_objects = []
-        gl.glUseProgram(0)
+        #gl.glUseProgram(0)
+        gl2.useProgram(0)
 
     def _update(self):
         """ Called when the object is activated and the _need_update
@@ -469,14 +480,17 @@ class Program(GLObject):
             raise ProgramError("No fragment shader has been given")
 
         # Detach any attached shaders
-        attached = gl.glGetAttachedShaders(self._handle)
+        #attached = gl.glGetAttachedShaders(self._handle)
+        attached = gl2.getAttachedShaders(self._handle)
         for handle in attached:
-            gl.glDetachShader(self._handle, handle)
+            #gl.glDetachShader(self._handle, handle)
+            gl2.detachShader(self._handle, handle)
 
         # Attach and activate vertex and fragment shaders
         for shader in self.shaders:
             shader.activate()
-            gl.glAttachShader(self._handle, shader.handle)
+            #gl.glAttachShader(self._handle, shader.handle)
+            gl2.attachShader(self._handle, shader.handle)
 
         # Only proceed if all shaders compiled ok
         oks = [shader._valid for shader in self.shaders]
@@ -485,9 +499,12 @@ class Program(GLObject):
 
         # Link the program
         # todo: should there be a try-except around this?
-        gl.glLinkProgram(self._handle)
-        if not gl.glGetProgramiv(self._handle, gl.GL_LINK_STATUS):
-            errors = gl.glGetProgramInfoLog(self._handle)
+        #gl.glLinkProgram(self._handle)
+        gl2.linkProgram(self._handle)
+        #if not gl.glGetProgramiv(self._handle, gl.GL_LINK_STATUS):
+        if not gl2.getProgramiv(self._handle, gl.GL_LINK_STATUS):
+            #errors = gl.glGetProgramInfoLog(self._handle)
+            errors = gl2.getProgramInfoLog(self._handle)
             errormsg = self._get_error(errors, 4)
             # parse_shader_errors(errors)
             raise ProgramError('Error linking %r:\n' % self + errormsg)
@@ -575,7 +592,8 @@ class Program(GLObject):
         for shader in self._verts + self._frags:
             need_enabled.update(shader._need_enabled)
         for enum in need_enabled:
-            gl.glEnable(enum)
+            #gl.glEnable(enum)
+            gl2.enable(enum)
 
         if isinstance(subset, ElementBuffer):
             # Draw elements
@@ -596,7 +614,8 @@ class Program(GLObject):
                 raise ValueError('element_index_uint extension needed '
                                  'for uint32 ElementBuffer.')
             # Draw
-            gl.glDrawElements(mode, subset.count, gltype, ptr)
+            #gl.glDrawElements(mode, subset.count, gltype, ptr)
+            gl2.drawElements(mode, subset.count, gltype, ptr)
 
         elif isinstance(subset, tuple):
             # Draw arrays
@@ -622,7 +641,8 @@ class Program(GLObject):
                     raise ValueError(
                         'Count is larger than known number of vertices.')
             # Draw
-            gl.glDrawArrays(mode, start, count)
+            #gl.glDrawArrays(mode, start, count)
+            gl2.drawArrays(mode, start, count)
 
         else:
             raise ValueError(
@@ -631,4 +651,5 @@ class Program(GLObject):
 
         # Clean up
         for enum in need_enabled:
-            gl.glDisable(enum)
+            #gl.glDisable(enum)
+            gl2.disable(enum)

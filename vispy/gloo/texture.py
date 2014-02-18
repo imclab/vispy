@@ -24,6 +24,7 @@ from . import gl
 from . import GLObject, ext_available, convert_to_enum
 from ..util import logger
 
+from vispy.gloo import gl2
 
 class TextureError(RuntimeError):
 
@@ -411,16 +412,20 @@ class Texture(GLObject):
         self._need_update = True
 
     def _create(self):
-        self._handle = gl.glGenTextures(1)
+        #self._handle = gl.glGenTextures(1)
+        self._handle = gl2.createTexture()
 
     def _delete(self):
-        gl.glDeleteTextures([self._handle])
+        #gl.glDeleteTextures([self._handle])
+        gl.deleteTexture(self._handle)
 
     def _activate(self):
-        gl.glBindTexture(self._target, self._handle)
+        #gl.glBindTexture(self._target, self._handle)
+        gl2.bindTexture(self._target, self._handle)
 
     def _deactivate(self):
-        gl.glBindTexture(self._target, 0)
+        #gl.glBindTexture(self._target, 0)
+        gl2.bindTexture(self._target, 0)
 
     def _update(self):
 
@@ -444,19 +449,20 @@ class Texture(GLObject):
                     self.delete()
                     self._create()
                 # Allocate texture on GPU
-                gl.glBindTexture(
-                    self._target,
-                    self._handle)  # self._activate()
+                #gl.glBindTexture(self._target, self._handle)  # _activate()
+                gl2.bindTexture(self._target, self._handle)  # _activate()
                 self._allocate_shape(texLevel)
                 # If not ok, warn (one time)
-                if not gl.glIsTexture(self._handle):
+                #if not gl.glIsTexture(self._handle):
+                if not gl2.isTexture(self._handle):
                     self._handle = 0
                     logger.warn('The texture is not valid.')
                     return
                 if new_texture_created:
                     # We have a new texture: apply all parameters that were set
                     for param, value in self._texture_params.items():
-                        gl.glTexParameter(self._target, param, value)
+                        #gl.glTexParameter(self._target, param, value)
+                        gl2.texParameterf(self._target, param, value)
                         self._pending_params = {}  # We just applied all
 
             # Need to update some data?
@@ -465,9 +471,8 @@ class Texture(GLObject):
                 # Apply clim and convert data type to one supported by OpenGL
                 data = convert_data(data, clim)
                 # Upload
-                gl.glBindTexture(
-                    self._target,
-                    self._handle)  # self._activate()
+                #gl.glBindTexture(self._target, self._handle)  # _activate()
+                gl2.bindTexture(self._target, self._handle)  # _activate()
                 self._upload_data(data, texLevel, offset)
 
         # Check
@@ -475,10 +480,12 @@ class Texture(GLObject):
         #    raise TextureError('This should not happen (texture is invalid)')
 
         # Need to update any parameters?
-        gl.glBindTexture(self._target, self._handle)  # self._activate()
+        #gl.glBindTexture(self._target, self._handle)  # self._activate()
+        gl2.bindTexture(self._target, self._handle)  # self._activate()
         while self._pending_params:
             param, value = self._pending_params.popitem()
-            gl.glTexParameter(self._target, param, value)
+            #gl.glTexParameter(self._target, param, value)
+            gl2.texParameterf(self._target, param, value)
 
     def _allocate_shape(self, texLevel):
         """ Allocate space for the current texture object.
@@ -490,18 +497,20 @@ class Texture(GLObject):
         shape, format, level = texLevel.shape, texLevel.format, texLevel.level
 
         # Determine function and target from texType
-        D = {  # gl.GL_TEXTURE_1D: (gl.glTexImage1D, 1),
-            gl.GL_TEXTURE_2D: (gl.glTexImage2D, 2),
-            gl.ext.GL_TEXTURE_3D: (gl.ext.glTexImage3D, 3)}
+        D = {  # gl.GL_TEXTURE_1D: (gl.glTexImage1D, 1),  # not in ES 2.0
+            #gl.GL_TEXTURE_2D: (gl.glTexImage2D, 2),
+            gl.GL_TEXTURE_2D: (gl2.texImage2D, 2),
+            gl.ext.GL_TEXTURE_3D: (gl.ext.glTexImage3D, 3)}  # todo: wrap ext?
         uploadFun, ndim = D[target]
 
         # Determine type
         gltype = gl.GL_UNSIGNED_BYTE
 
         # Build args list
-        size = [i for i in reversed(shape[:ndim])]
-        args = [target, level, format] + size + [0, format, gltype, None]
-
+        #size = [i for i in reversed(shape[:ndim])]
+        #args = [target, level, format] + size + [0, format, gltype, None]
+        args = [target, level, format, format, gltype, shape[:ndim]]
+        
         # Call
         uploadFun(*tuple(args))
 
@@ -517,7 +526,8 @@ class Texture(GLObject):
 
         # Determine function and target from texType
         D = {  # gl.GL_TEXTURE_1D: (gl.glTexSubImage1D, 1),
-            gl.GL_TEXTURE_2D: (gl.glTexSubImage2D, 2),
+            #gl.GL_TEXTURE_2D: (gl.glTexSubImage2D, 2),
+            gl.GL_TEXTURE_2D: (gl2.texSubImage2D, 2),
             gl.ext.GL_TEXTURE_3D: (gl.ext.glTexSubImage3D, 3)}
         uploadFun, ndim = D[target]
 
@@ -533,19 +543,22 @@ class Texture(GLObject):
         gltype = self.DTYPE2GTYPE[thetype]
 
         # Build args list
-        size = [i for i in reversed(data.shape[:ndim])]
-        args = [target, level] + offset + size + [format, gltype, data]
+        #size = [i for i in reversed(data.shape[:ndim])]
+        #args = [target, level] + offset + size + [format, gltype, data]
+        args = [target, level] + offset + [format, gltype, data]
 
         # Check the alignment of the texture
         if alignment != 4:
-            gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, alignment)
+            #gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, alignment)
+            gl2.pixelStorei(gl.GL_UNPACK_ALIGNMENT, alignment)
 
         # Call
         uploadFun(*tuple(args))
 
         # Check if we need to reset our pixel store state
         if alignment != 4:
-            gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 4)
+            #gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 4)
+            gl2.pixelStorei(gl.GL_UNPACK_ALIGNMENT, 4)
 
     # from pylgy
     def _get_alignment(self, width):

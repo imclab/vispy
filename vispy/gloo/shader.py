@@ -27,6 +27,8 @@ from ..util import is_string
 from . import gl
 from . import GLObject
 
+from vispy.gloo import gl2
+
 
 # ------------------------------------------------------- class ShaderError ---
 class ShaderError(RuntimeError):
@@ -182,14 +184,16 @@ class Shader(GLObject):
         """
         Create the shader.
         """
-        self._handle = gl.glCreateShader(self._target)
+        #self._handle = gl.glCreateShader(self._target)
+        self._handle = gl2.createShader(self._target)
 
     def _delete(self):
         """
         Delete the shader.
         """
 
-        gl.glDeleteShader(self._handle)
+        #gl.glDeleteShader(self._handle)
+        gl2.deleteShader(self._handle)
 
     def _update(self):
         """
@@ -206,19 +210,23 @@ class Shader(GLObject):
         #gl.glShaderSource(self._handle, [self._code])
 
         # More compativle variant (also deals with above chars problem)
-        self._need_enabled = gl.glShaderSource_compat(self._handle, self._code)
+        #self._need_enabled = gl.glShaderSource_compat(self._handle, self._code)
+        self._need_enabled = gl2.shaderSource_compat(self._handle, self._code)
 
         # Compile the shader
         try:
-            gl.glCompileShader(self._handle)
+            #gl.glCompileShader(self._handle)
+            gl2.compileShader(self._handle)
         except error.GLError as errors:
             errormsg = self._get_error(str(errors), 4)
             raise ShaderError("Error compiling %r:\n" % self + errormsg)
 
         # Check the compile status
-        status = gl.glGetShaderiv(self._handle, gl.GL_COMPILE_STATUS)
+        #status = gl.glGetShaderiv(self._handle, gl.GL_COMPILE_STATUS)
+        status = gl2.getShaderiv(self._handle, gl.GL_COMPILE_STATUS)
         if not status:
-            errors = gl.glGetShaderInfoLog(self._handle)
+            #errors = gl.glGetShaderInfoLog(self._handle)
+            errors = gl2.getShaderInfoLog(self._handle)
             errormsg = self._get_error(errors, 4)
             raise ShaderError("Error compiling %r:\n" % self + errormsg)
 
