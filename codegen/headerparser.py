@@ -375,8 +375,8 @@ class Argument:
         # Store stuff
         self.orig = tuple(components)
         self.name = name.lstrip('*')
-        self.isptr = len(name) - len(self.name)  # Number of stars
-        self.ctype = type
+        self.isptr = argAsString.count('*')  # Number of stars
+        self.ctype = type.strip('*') + '*'*self.isptr
         self.typedes = TYPEMAP.get(type, type)
         self.pytype = self.typedes.split(' ')[0]
         # Status flags
