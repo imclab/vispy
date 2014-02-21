@@ -179,7 +179,7 @@ def bufferData(target, data, usage):
     try:
         func = bufferData._native
     except AttributeError:
-        func = bufferData._native = _get_gl_func("glBufferData", None, (ctypes.c_uint, ctypes.c_longlong, ctypes.c_void_p, ctypes.c_uint,))
+        func = bufferData._native = _get_gl_func("glBufferData", None, (ctypes.c_uint, ctypes.c_int, ctypes.c_void_p, ctypes.c_uint,))
     res = func(target, size, data, usage)
 
 
@@ -193,7 +193,7 @@ def bufferSubData(target, offset, data):
     try:
         func = bufferSubData._native
     except AttributeError:
-        func = bufferSubData._native = _get_gl_func("glBufferSubData", None, (ctypes.c_uint, ctypes.c_longlong, ctypes.c_longlong, ctypes.c_void_p,))
+        func = bufferSubData._native = _get_gl_func("glBufferSubData", None, (ctypes.c_uint, ctypes.c_int, ctypes.c_int, ctypes.c_void_p,))
     res = func(target, offset, size, data)
 
 

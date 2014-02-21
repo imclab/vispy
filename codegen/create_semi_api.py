@@ -100,8 +100,8 @@ def create_constants_module(parser, extension=False):
 
     # Write the file
     fname = '_constants_ext.py' if extension else '_constants.py'
-    with open(os.path.join(GLDIR, fname), 'w') as f:
-        f.write('\n'.join(lines))
+    with open(os.path.join(GLDIR, fname), 'wb') as f:
+        f.write(('\n'.join(lines)).encode('utf-8'))
     print('wrote %s' % fname)
 
 
@@ -169,8 +169,8 @@ HARDER_TYPES = {
                 'GLchar**':('', 'POINTER(ctypes.c_char_p)'),
                 'GLvoid*':('', 'c_void_p'),  # or c_voidp?
                 'GLvoid**':('', 'POINTER(ctypes.c_void_p)'),
-                'GLintptr':('', 'c_longlong'), 
-                'GLsizeiptr':('', 'c_longlong'),
+                'GLintptr':('', 'c_int'), 
+                'GLsizeiptr':('', 'c_int'),
                 }
 
 
