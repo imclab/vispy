@@ -309,10 +309,10 @@ def getUniformLocation(program, name):
     return PROXY["getUniformLocation"](program, name)
 
 
-def getVertexAttrfv(index, pname):
-    return PROXY["getVertexAttrfv"](index, pname)
-def getVertexAttriv(index, pname):
-    return PROXY["getVertexAttriv"](index, pname)
+def getVertexAttribfv(index, pname):
+    return PROXY["getVertexAttribfv"](index, pname)
+def getVertexAttribiv(index, pname):
+    return PROXY["getVertexAttribiv"](index, pname)
 
 
 def getVertexAttribPointerv(index, pname):

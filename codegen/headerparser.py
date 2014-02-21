@@ -285,7 +285,10 @@ class ConstantDefinition(Definition):
 
 
 class FunctionDefinition(Definition):
-
+    
+    SKIPTYPECHARS = 'if'  # 'bsifd'
+    ALLSKIPCHARS = SKIPTYPECHARS + 'v1234'
+    
     def parse_line(self, line):
         """ Set cname, keyname, cargs attributes.
         The list of args always has one entry and the first entry is always
@@ -301,9 +304,9 @@ class FunctionDefinition(Definition):
 
         # Possibly, this function belongs to a collection of similar functions,
         # which we are going to replace with one function in Python.
-        self.keyname = self.pname.rstrip('v').rstrip('bsifd').rstrip('1234')
+        self.keyname = self.pname.rstrip('v').rstrip(self.SKIPTYPECHARS).rstrip('1234')
         self.extrachars = self.matchKeyName(self.keyname)
-
+        
         # If this is a list, this instance represents the group
         # If this is True, this instance is in a group (but not the
         # representative)
@@ -322,7 +325,7 @@ class FunctionDefinition(Definition):
     def matchKeyName(self, keyname):
         if self.pname.startswith(keyname):
             extrachars = self.pname[len(keyname):]
-            if all([(c in 'vbsuifd1234') for c in extrachars]):
+            if all([(c in self.ALLSKIPCHARS) for c in extrachars]):
                 return extrachars
 
     def count_input_args(self):

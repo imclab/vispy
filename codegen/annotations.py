@@ -365,7 +365,7 @@ class FunctionAnnotation:
         for line, comment in self.lines:
             if (backend in comment) or (not comment):
                 if line.strip() == '()':
-                    line = '    '+call
+                    line = call
                 lines.append(line)
         return lines
     
