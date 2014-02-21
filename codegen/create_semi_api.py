@@ -103,7 +103,7 @@ def create_constants_module(parser, extension=False):
     with open(os.path.join(GLDIR, fname), 'wb') as f:
         f.write(('\n'.join(lines)).encode('utf-8'))
     print('wrote %s' % fname)
-
+    
 
 create_constants_module(parser1)
 
@@ -393,6 +393,30 @@ class MainApiGenerator(ApiGenerator):
         args = sig.split('(', 1)[1].split(')')[0]
         self.lines.append('def %s:' % sig)
         self.lines.append('    return PROXY["%s"](%s)' % (funcname, args))
+
+
+
+class CompatApiGenrator(MainApiGenerator):
+    filename = os.path.join(GLDIR, '_main_compat.py')
+    write_c_sig = False
+    
+    PREAMBLE = """
+    from .import _main
+    PROXY = _main.__dict__
+    """
+    def _add_function(self, des):
+        argstr = ', '.join(des.args)
+        name = 'gl' + des.name[0].upper() + des.name[1:]
+        self.lines.append('def %s(%s):' % (name, argstr))
+        self.lines.append('    return PROXY["%s"](%s)' % (des.name, argstr))
+    
+    def _add_group_function(self, des, sig, es2func):
+        funcname = sig.split('(')[0]
+        sig = 'gl' + sig[0].upper() + sig[1:]
+        args = sig.split('(', 1)[1].split(')')[0]
+        self.lines.append('def %s:' % sig)
+        self.lines.append('    return PROXY["%s"](%s)' % (funcname, args))
+
 
 
 class DesktopApiGenerator(ApiGenerator):
@@ -699,13 +723,14 @@ class AngleApiGenrator(DesktopApiGenerator):
     """
 
 
+
 ## Generate
 
 # Get functions
 functions = combine_function_definitions()
 
 # Generate
-for Gen in [MainApiGenerator, DesktopApiGenerator, AngleApiGenrator]:
+for Gen in [MainApiGenerator, DesktopApiGenerator, AngleApiGenrator, CompatApiGenrator]:
     gen = Gen()
     for des in functions:
         gen.add_function(des)

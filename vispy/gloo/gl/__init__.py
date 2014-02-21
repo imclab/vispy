@@ -40,41 +40,48 @@ def _make_debug_wrapper(funcname, func):
         return ret
     return cb
 
-
-def use(target='desktop'):
-    """ Let Vispy use the target OpenGL ES 2.0 implementation.
-    Currently, only "desktop" is supported.
-    """
-    debug = config['gl_debug']
-
-    # Select modules to import names from
-    if target == 'desktop':
-        from . import desktop as mod
-    else:
-        raise ValueError('Invalid target to load OpenGL API from.')
-
-    # Import functions here
-    NS = globals()
-    funcnames = [name for name in dir(mod) if name.startswith('gl')]
-    for name in funcnames:
-        func = getattr(mod, name)
-        if debug:
-            func = _make_debug_wrapper(name, func)
-        NS[name] = func
-
-    # Import functions in ext
-    NS = ext.__dict__
-    funcnames = [name for name in dir(mod.ext) if name.startswith('gl')]
-    for name in funcnames:
-        func = getattr(mod.ext, name)
-        if debug:
-            func = _make_debug_wrapper(name, func)
-        NS[name] = func
+# 
+# def use(target='desktop'):
+#     """ Let Vispy use the target OpenGL ES 2.0 implementation.
+#     Currently, only "desktop" is supported.
+#     """
+#     debug = config['gl_debug']
+# 
+#     # Select modules to import names from
+#     if target == 'desktop':
+#         from . import desktop as mod
+#     else:
+#         raise ValueError('Invalid target to load OpenGL API from.')
+# 
+#     # Import functions here
+#     NS = globals()
+#     funcnames = [name for name in dir(mod) if name.startswith('gl')]
+#     for name in funcnames:
+#         func = getattr(mod, name)
+#         if debug:
+#             func = _make_debug_wrapper(name, func)
+#         NS[name] = func
+# 
+#     # Import functions in ext
+#     NS = ext.__dict__
+#     funcnames = [name for name in dir(mod.ext) if name.startswith('gl')]
+#     for name in funcnames:
+#         func = getattr(mod.ext, name)
+#         if debug:
+#             func = _make_debug_wrapper(name, func)
+#         NS[name] = func
 
 
 # Import ext namespace and constants
-from . import ext
-from ._constants import *  # noqa
+# from . import ext
+# from ._constants import *  # noqa
 
+from ..gl2._main_compat import *
+from ..gl2._constants import *
+from . import _constants_ext as ext
+
+ext.glTexImage3D = None  # Just becaue the name is used
+ext.glTexSubImage3D = None
 # Fill this namespace with functions
-use()
+# use()
+
