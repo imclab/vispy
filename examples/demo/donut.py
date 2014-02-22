@@ -109,7 +109,7 @@ class Canvas(app.Canvas):
         self.program['u_size'] = u_size
         self.program['u_amt'] = u_amt
 
-        self.timer = app.Timer(1.0 / 400)
+        self.timer = app.Timer(1.0 / 4000000000)
         self.timer.connect(self.on_timer)
         self.timer.start()
 
@@ -163,3 +163,4 @@ if __name__ == '__main__':
                title="Atom [zoom with mouse scroll]")
     # c.show()
     app.run()
+    c.measure_fps(3)

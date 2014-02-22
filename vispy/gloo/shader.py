@@ -21,7 +21,7 @@ from __future__ import division
 
 import re
 import os
-from OpenGL import error
+# from OpenGL import error
 
 from ..util import is_string
 from . import gl
@@ -217,9 +217,10 @@ class Shader(GLObject):
         try:
             #gl.glCompileShader(self._handle)
             gl2.compileShader(self._handle)
-        except error.GLError as errors:
+        except Exception:#error.GLError as errors:
+            # todo: ...
             errormsg = self._get_error(str(errors), 4)
-            raise ShaderError("Error compiling %r:\n" % self + errormsg)
+            raise ShaderError(("Error compiling %r:\n" % self) + str(errors))
 
         # Check the compile status
         #status = gl.glGetShaderiv(self._handle, gl.GL_COMPILE_STATUS)

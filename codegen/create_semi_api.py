@@ -100,10 +100,10 @@ def create_constants_module(parser, extension=False):
 
     # Write the file
     fname = '_constants_ext.py' if extension else '_constants.py'
-    with open(os.path.join(GLDIR, fname), 'w') as f:
-        f.write('\n'.join(lines))
+    with open(os.path.join(GLDIR, fname), 'wb') as f:
+        f.write(('\n'.join(lines)).encode('utf-8'))
     print('wrote %s' % fname)
-
+    
 
 create_constants_module(parser1)
 
@@ -130,7 +130,6 @@ WEBGL_EQUIVALENTS = {
                         'getRenderbufferParameteriv': 'getRenderbufferParameter',
                         'getFramebufferAttachmentParameteriv': 'getFramebufferAttachmentParameter',
                         
-                        'getVertexAttr': 'getVertexAttrib',
                         'getVertexAttribPointerv': 'getVertexAttribOffset',
                         
                         'getProgramiv': 'getProgramParameter',
@@ -170,8 +169,8 @@ HARDER_TYPES = {
                 'GLchar**':('', 'POINTER(ctypes.c_char_p)'),
                 'GLvoid*':('', 'c_void_p'),  # or c_voidp?
                 'GLvoid**':('', 'POINTER(ctypes.c_void_p)'),
-                'GLintptr':('', 'c_longlong'), 
-                'GLsizeiptr':('', 'c_longlong'),
+                'GLintptr':('', 'c_int'), 
+                'GLsizeiptr':('', 'c_int'),
                 }
 
 
@@ -311,43 +310,57 @@ class ApiGenerator:
         lines = self.lines
         handled = True
         
+        # Create map to es2 function objects
+        es2funcs = {}
+        for f in des.es2.group:
+            cname = f.oname[2].lower() + f.oname[3:]
+            es2funcs[cname] = f
+        
         if des.name == 'uniform':
             for t in ('float', 'int'):
                 for i in (1,2,3,4):
                     args = ', '.join(['v%i'%j for j in range(1,i+1)])
-                    sig = 'uniform%i%s(location, %s)' % (i, t[0], args)
-                    self._add_group_function(des, sig)
+                    cname = 'uniform%i%s' % (i, t[0])
+                    sig = '%s(location, %s)' % (cname, args)
+                    self._add_group_function(des, sig, es2funcs[cname])
             for t in ('float', 'int'):
                 for i in (1,2,3,4):
-                    sig = 'uniform%i%sv(location, count, values)' % (i, t[0])
-                    self._add_group_function(des, sig)
+                    cname = 'uniform%i%sv' % (i, t[0])
+                    sig = '%s(location, count, values)' % cname
+                    self._add_group_function(des, sig, es2funcs[cname])
         elif des.name == 'uniformMatrix':
             for i in (2,3,4):
-                sig = 'uniformMatrix%ifv(location, count, transpose, values)' % i
-                self._add_group_function(des, sig)
+                cname = 'uniformMatrix%ifv' % i
+                sig = '%s(location, count, transpose, values)' % cname
+                self._add_group_function(des, sig, es2funcs[cname])
         elif des.name == 'getUniform':
             for t in ('float', 'int'):
-                sig = 'getUniform%sv(program, location)' % t[0]
-                self._add_group_function(des, sig)
+                cname = 'getUniform%sv' % t[0]
+                sig = '%s(program, location)' % cname
+                self._add_group_function(des, sig, es2funcs[cname])
         
         elif des.name == 'vertexAttrib':
             for i in (1,2,3,4):
                 args = ', '.join(['v%i'%j for j in range(1,i+1)])
-                sig = 'vertexAttrib%if(index, %s)' % (i, args)
-                self._add_group_function(des, sig)
-        elif des.name == 'getVertexAttr':
+                cname = 'vertexAttrib%if' % i
+                sig = '%s(index, %s)' % (cname, args)
+                self._add_group_function(des, sig, es2funcs[cname])
+        elif des.name == 'getVertexAttrib':
             for t in ('float', 'int'):
-                sig = 'getVertexAttr%sv(index, pname)' % t[0]
-                self._add_group_function(des, sig)
+                cname = 'getVertexAttrib%sv' % t[0]
+                sig = '%s(index, pname)' % cname
+                self._add_group_function(des, sig, es2funcs[cname])
         
         elif des.name == 'texParameter':
             for t in ('float', 'int'):
-                sig = 'texParameter%s(target, pname, param)' % t[0]
-                self._add_group_function(des, sig)
+                cname = 'texParameter%s' % t[0]
+                sig = '%s(target, pname, param)' % cname
+                self._add_group_function(des, sig, es2funcs[cname])
         elif des.name == 'getTexParameter':
             for t in ('float', 'int'):
-                sig = 'getTexParameter%sv(target, pname)' % t[0]
-                self._add_group_function(des, sig)
+                cname = 'getTexParameter%sv' % t[0]
+                sig = '%s(target, pname)' % cname
+                self._add_group_function(des, sig, es2funcs[cname])
         
         else:
             handled = False
@@ -361,7 +374,7 @@ class ApiGenerator:
     def _add_function(self, des):
         raise NotImplementedError()
     
-    def _add_group_function(self, des, sig):
+    def _add_group_function(self, des, sig, es2func):
         raise NotImplementedError()
 
 
@@ -375,11 +388,35 @@ class MainApiGenerator(ApiGenerator):
         self.lines.append('def %s(%s):' % (des.name, argstr))
         self.lines.append('    return PROXY["%s"](%s)' % (des.name, argstr))
     
-    def _add_group_function(self, des, sig):
+    def _add_group_function(self, des, sig, es2func):
         funcname = sig.split('(')[0]
         args = sig.split('(', 1)[1].split(')')[0]
         self.lines.append('def %s:' % sig)
         self.lines.append('    return PROXY["%s"](%s)' % (funcname, args))
+
+
+
+class CompatApiGenrator(MainApiGenerator):
+    filename = os.path.join(GLDIR, '_main_compat.py')
+    write_c_sig = False
+    
+    PREAMBLE = """
+    from .import _main
+    PROXY = _main.__dict__
+    """
+    def _add_function(self, des):
+        argstr = ', '.join(des.args)
+        name = 'gl' + des.name[0].upper() + des.name[1:]
+        self.lines.append('def %s(%s):' % (name, argstr))
+        self.lines.append('    return PROXY["%s"](%s)' % (des.name, argstr))
+    
+    def _add_group_function(self, des, sig, es2func):
+        funcname = sig.split('(')[0]
+        sig = 'gl' + sig[0].upper() + sig[1:]
+        args = sig.split('(', 1)[1].split(')')[0]
+        self.lines.append('def %s:' % sig)
+        self.lines.append('    return PROXY["%s"](%s)' % (funcname, args))
+
 
 
 class DesktopApiGenerator(ApiGenerator):
@@ -388,15 +425,78 @@ class DesktopApiGenerator(ApiGenerator):
     
     PREAMBLE = """
     import ctypes.util
-    fname = ctypes.util.find_library('GL')
-    _lib = ctypes.cdll.LoadLibrary(fname)
+    import sys
+    
+    if sys.platform.startswith('win'):
+        fname = ctypes.util.find_library('opengl32')
+        #_lib = ctypes.cdll.LoadLibrary(fname)  # Actually works as well
+        _lib = ctypes.windll.opengl32#(fname, ctypes.RTLD_GLOBAL)
+        
+        try:
+            wglGetProcAddress = _lib.wglGetProcAddress
+            wglGetProcAddress.restype = ctypes.CFUNCTYPE(ctypes.POINTER(ctypes.c_int))
+            wglGetProcAddress.argtypes = [ctypes.c_char_p]
+            _have_get_proc_address = True
+        except AttributeError:
+            _have_get_proc_address = False
+    else:
+        _have_get_proc_address = False
+        fname = ctypes.util.find_library('GL')
+        _lib = ctypes.cdll.LoadLibrary(fname)
+    
+    del sys
+    
+    def _have_context():
+        return _lib.glGetError() != 1282  # GL_INVALID_OPERATION
+
+
+    def _get_gl_func(name, restype, argtypes):
+        try:
+            # Try using normal ctypes stuff
+            func = getattr(_lib, name)
+            func.restype = restype
+            func.argtypes = argtypes
+            return func
+        except AttributeError:
+            # Ask for a pointer to the function, this is the approach
+            # for OpenGL extensions on Windows 
+            fargs = (restype,) + argtypes
+            ftype = ctypes.WINFUNCTYPE(*fargs)
+            if not _have_get_proc_address:
+                raise RuntimeError('Function %s not available.' % name)
+            if not _have_context():
+                raise RuntimeError('Using %s with no OpenGL context.' % name)
+            address = wglGetProcAddress(name.encode('utf-8'))
+            if address:
+                return ctypes.cast(address, ftype)
+            else:
+                raise RuntimeError('Function %s not present in current context.' % name)
     """
+    
+    def _get_argtype_str(self, es2func):
+        ce_arg_types = [arg.ctype for arg in es2func.args[1:]]
+        ct_arg_types = [KNOWN_TYPES.get(arg.ctype, None) for arg in es2func.args]
+        # Set argument types on ctypes function
+        if None in ct_arg_types:
+            argstr = 'UNKNOWN_ARGTYPES'
+        elif es2func.group:
+            argstr = 'UNKNOWN_ARGTYPES'
+        else:
+            argstr = ', '.join(['ctypes.%s' % t[1] for t in ct_arg_types[1:]])
+            argstr = '()' if not argstr else '(%s,)' % argstr
+        # Set output arg (if available)
+        if ct_arg_types[0][0] != type(None):
+            resstr = 'ctypes.%s' % ct_arg_types[0][1]
+        else:
+            resstr = 'None'
+        return resstr, argstr
+    
     
     def _write_argtypes(self, es2func):
         lines = self.lines
         ce_arg_types = [arg.ctype for arg in es2func.args[1:]]
         ct_arg_types = [KNOWN_TYPES.get(arg.ctype, None) for arg in es2func.args]
-         # Set argument types on ctypes function
+        # Set argument types on ctypes function
         if None in ct_arg_types:
             lines.append('# todo: unknown argtypes')
         elif es2func.group:
@@ -411,17 +511,29 @@ class DesktopApiGenerator(ApiGenerator):
         if ct_arg_types[0][0] != type(None):
             lines.append('_lib.%s.restype = ctypes.%s' % (es2func.glname, ct_arg_types[0][1]))
     
-    def _add_function_group(self, des):
-        for es2func in des.es2.group:
-            self._write_argtypes(es2func)
-        super()._add_function_group(des)
+    def _native_call_line(self, name, es2func, cargstr=None, prefix='', indent=4):
+        #'_lib.%s(%s)' % (des.es2.glname, cargstr)
+        resstr, argstr = self._get_argtype_str(es2func)
+        if cargstr is None:
+            cargs = [arg.name for arg in es2func.args[1:]]
+            cargstr = ', '.join(cargs)
+        
+        lines = 'try:\n'
+        lines += '    func = %s._native\n' % name
+        lines += 'except AttributeError:\n'
+        lines += '    func = %s._native = _get_gl_func("%s", %s, %s)\n' % (
+                name, es2func.glname, resstr, argstr)
+        lines += '%sfunc(%s)' % (prefix, cargstr)
+        
+        lines = [' '*indent + line for line in lines.splitlines()]
+        return '\n'.join(lines)
     
     def _add_function(self, des):
         lines = self.lines
         es2func = des.es2
         
         # Write arg types
-        self._write_argtypes(des.es2)
+        #self._write_argtypes(des.es2)
         
         # Get names and types of C-API
         ce_arg_types = [arg.ctype for arg in es2func.args[1:]]
@@ -440,14 +552,15 @@ class DesktopApiGenerator(ApiGenerator):
         # Construct C function call
         cargs = [arg.name for arg in des.es2.args[1:]]
         cargstr = ', '.join(cargs)
-        callline = '_lib.%s(%s)' % (des.es2.glname, cargstr)
+        #callline = '_lib.%s(%s)' % (des.es2.glname, cargstr)
         
         # Now write the body of the function ...
         if des.ann:
             prefix = 'res = '
             # Annotation available
             functions_anno.add(des.name)
-            lines.extend( des.ann.get_lines(prefix+callline, 'desktop') )
+            callline = self._native_call_line(des.name, des.es2, prefix=prefix)
+            lines.extend( des.ann.get_lines(callline, 'desktop') )
         
         elif es2func.group:
             # Group?
@@ -469,11 +582,16 @@ class DesktopApiGenerator(ApiGenerator):
             elif des.es2.pname.startswith('get'):
                 raise RuntimeError('Get func returns void?')
             # Set string
-            lines.append('    ' + prefix + callline)
+            callline = self._native_call_line(des.name, des.es2, prefix=prefix)
+            lines.append(callline)
     
-    def _add_group_function(self, des, sig):
+    def _add_group_function(self, des, sig, es2func):
         lines = self.lines
         handled = True
+        
+        call_line = self._native_call_line
+        
+        #self._write_argtypes(es2func)
         
         funcname = sig.split('(', 1)[0]
         args = sig.split('(', 1)[1].split(')')[0]
@@ -482,116 +600,117 @@ class DesktopApiGenerator(ApiGenerator):
         if des.name == 'uniform':
             if funcname[-1] != 'v':
                 lines.append('def %s:' % sig)
-                lines.append('    _lib.%s(%s)' % (cfuncname, args))
+                lines.append(call_line(funcname, es2func, args))
             else:
                 t = {'f':'float', 'i':'int'}[funcname[-2]]
                 lines.append('def %s:' % sig)
                 lines.append('    values = [val for val in values]')
                 lines.append('    values = (ctypes.c_%s*len(values))(*values)' % t)
-                lines.append('    _lib.%s(location, count, values)' % cfuncname)
+                lines.append(call_line(funcname, es2func, 'location, count, values'))
         elif des.name == 'uniformMatrix':
             lines.append('def %s:' % sig)
             lines.append('    values = [val for val in values]')
             lines.append('    values = (ctypes.c_float*len(values))(*values)')
-            lines.append('    _lib.%s(location, count, transpose, values)' % cfuncname)
+            lines.append(call_line(funcname, es2func, 'location, count, transpose, values'))
         elif des.name == 'getUniform':
             t = {'f':'float', 'i':'int'}[funcname[-2]]
             lines.append('def %s:' % sig)
             lines.append('    d = -99999  # Note: this is a bit dangerous')
             lines.append('    values = (ctypes.c_%s*16)(*[d for i in range(16)])' % t)
-            lines.append('    _lib.%s(program, location, values)' % cfuncname)
+            lines.append(call_line(funcname, es2func, 'program, location, values'))
             lines.append('    return tuple([val for val in values if val!=d])')
         
         elif des.name == 'vertexAttrib':
             lines.append('def %s:' % sig)
-            lines.append('    _lib.%s(%s)' % (cfuncname, args))
-        elif des.name == 'getVertexAttr':
+            lines.append(call_line(funcname, es2func, args))
+        elif des.name == 'getVertexAttrib':
             t = {'f':'float', 'i':'int'}[funcname[-2]]
             lines.append('def %s:' % sig)
             lines.append('    d = -99999  # Note: this is a bit dangerous')
             lines.append('    values = (ctypes.c_%s*4)(*[d for i in range(4)])' % t)
-            lines.append('    _lib.%s(index, pname, values)' % cfuncname)
+            lines.append(call_line(funcname, es2func, 'index, pname, values'))
             lines.append('    return tuple([val for val in values if val!=d])')
         
         elif des.name == 'texParameter':
             lines.append('def %s:' % sig)
-            lines.append('    _lib.%s(%s)' % (cfuncname, args))
+            lines.append(call_line(funcname, es2func, args))
         elif des.name == 'getTexParameter':
             t = {'f':'float', 'i':'int'}[funcname[-2]]
             lines.append('def %s:' % sig)
             lines.append('    params = (ctypes.c_%s*1)()' % t)
-            lines.append('    _lib.%s(target, pname, params)' % cfuncname)
+            lines.append(call_line(funcname, es2func, 'target, pname, params'))
             lines.append('    return params[0]')
         
         else:
             raise ValueError('unknown group func')
     
     
-    def _add_function_group_old(self, des):
-        lines = self.lines
-        handled = True
-        
-        if des.name == 'uniform':
-            for t in ('float', 'int'):
-                for i in (1,2,3,4):
-                    args = ', '.join(['v%i'%j for j in range(1,i+1)])
-                    sig = '%i%s(location, %s)' % (i, t[0], args)
-                    lines.append('def uniform%s:' % sig)
-                    lines.append('    _lib.glUniform%s' % sig)
-            for t in ('float', 'int'):
-                for i in (1,2,3,4):
-                    lines.append('def uniform%i%sv(location, value):' % (i, t[0]))
-                    lines.append('    values = [val for val in values]')
-                    lines.append('    values = (ctypes.c_%s*len(values))(*values)' % t)
-                    lines.append('    _lib.glUniform%i%sv(location, values)' % (i, t[0]))
-        elif des.name == 'uniformMatrix':
-            for i in (2,3,4):
-                lines.append('def uniformMatrix%ifv(location, count, transpose, values):' % i)
-                lines.append('    values = [val for val in values]')
-                lines.append('    values = (ctypes.c_float*len(values))(*values)')
-                lines.append('    _lib.glUniformMatrix%ifv(location, count, transpose, values)' % i)
-        elif des.name == 'getUniform':
-            for t in ('float', 'int'):
-                lines.append('def getUniform%sv(program, location):' % t[0])
-                lines.append('    d = -99999  # Note: this is a bit dangerous')
-                lines.append('    values = (ctypes.c_%s*16)(*[d for i in range(16)])' % t)
-                lines.append('    _lib.glGetUniform%sv(program, location, values)' % t[0])
-                lines.append('    return tuple([val for val in values if val!=d])')
-        
-        elif des.name == 'vertexAttrib':
-            for i in (1,2,3,4):
-                args = ', '.join(['v%i'%j for j in range(1,i+1)])
-                sig = '%if(index, %s)' % (i, args)
-                lines.append('def vertexAttrib%s:' % sig)
-                lines.append('    _lib.glVertexAttrib%s' % sig)
-        elif des.name == 'getVertexAttr':
-            for t in ('float', 'int'):
-                lines.append('def getVertexAttr%sv(index, pname):' % t[0])
-                lines.append('    d = -99999  # Note: this is a bit dangerous')
-                lines.append('    values = (ctypes.c_%s*4)(*[d for i in range(4)])' % t)
-                lines.append('    _lib.glGetVertexAttr%sv(index, pname, values)' % t[0])
-                lines.append('    return tuple([val for val in values if val!=d])')
-        
-        elif des.name == 'texParameter':
-            for t in ('float', 'int'):
-                lines.append('def texParameter%s(target, pname, param):' % t[0])
-                lines.append('    _lib.glTexParameter%s(target, pname, param)' % t[0])
-        elif des.name == 'getTexParameter':
-            for t in ('float', 'int'):
-                lines.append('def getTexParameter%sv(target, pname):' % t[0])
-                lines.append('    params = (ctypes.c_%s*1)()')
-                lines.append('    _lib.glGetTexParameter%sv(target, pname, params)' % t[0])
-                lines.append('    return params[0]')
-        
-        else:
-            handled = False
-        
-        if handled:
-            functions_auto.add(des.name)
-        else:
-            functions_todo.add(des.name)
-            lines.append('# todo: Dont know group %s' % des.name)
-        
+#     def _add_function_group_old(self, des):
+#         lines = self.lines
+#         handled = True
+#         
+#         if des.name == 'uniform':
+#             for t in ('float', 'int'):
+#                 for i in (1,2,3,4):
+#                     args = ', '.join(['v%i'%j for j in range(1,i+1)])
+#                     sig = '%i%s(location, %s)' % (i, t[0], args)
+#                     lines.append('def uniform%s:' % sig)
+#                     lines.append('    _lib.glUniform%s' % sig)
+#             for t in ('float', 'int'):
+#                 for i in (1,2,3,4):
+#                     lines.append('def uniform%i%sv(location, value):' % (i, t[0]))
+#                     lines.append('    values = [val for val in values]')
+#                     lines.append('    values = (ctypes.c_%s*len(values))(*values)' % t)
+#                     lines.append('    _lib.glUniform%i%sv(location, values)' % (i, t[0]))
+#         elif des.name == 'uniformMatrix':
+#             for i in (2,3,4):
+#                 lines.append('def uniformMatrix%ifv(location, count, transpose, values):' % i)
+#                 lines.append('    values = [val for val in values]')
+#                 lines.append('    values = (ctypes.c_float*len(values))(*values)')
+#                 lines.append('    _lib.glUniformMatrix%ifv(location, count, transpose, values)' % i)
+#         elif des.name == 'getUniform':
+#             for t in ('float', 'int'):
+#                 lines.append('def getUniform%sv(program, location):' % t[0])
+#                 lines.append('    d = -99999  # Note: this is a bit dangerous')
+#                 lines.append('    values = (ctypes.c_%s*16)(*[d for i in range(16)])' % t)
+#                 lines.append('    _lib.glGetUniform%sv(program, location, values)' % t[0])
+#                 lines.append('    return tuple([val for val in values if val!=d])')
+#         
+#         elif des.name == 'vertexAttrib':
+#             for i in (1,2,3,4):
+#                 args = ', '.join(['v%i'%j for j in range(1,i+1)])
+#                 sig = '%if(index, %s)' % (i, args)
+#                 lines.append('def vertexAttrib%s:' % sig)
+#                 lines.append('    _lib.glVertexAttrib%s' % sig)
+#         elif des.name == 'getVertexAttrib':
+#             for t in ('float', 'int'):
+#                 lines.append('def getVertexAttrib%sv(index, pname):' % t[0])
+#                 lines.append('    d = -99999  # Note: this is a bit dangerous')
+#                 lines.append('    values = (ctypes.c_%s*4)(*[d for i in range(4)])' % t)
+#                 lines.append('    _lib.glGetVertexAttrib%sv(index, pname, values)' % t[0])
+#                 lines.append('    return tuple([val for val in values if val!=d])')
+#         
+#         elif des.name == 'texParameter':
+#             for t in ('float', 'int'):
+#                 lines.append('def texParameter%s(target, pname, param):' % t[0])
+#                 lines.append('    _lib.glTexParameter%s(target, pname, param)' % t[0])
+#         elif des.name == 'getTexParameter':
+#             for t in ('float', 'int'):
+#                 lines.append('def getTexParameter%sv(target, pname):' % t[0])
+#                 lines.append('    params = (ctypes.c_%s*1)()')
+#                 lines.append('    _lib.glGetTexParameter%sv(target, pname, params)' % t[0])
+#                 lines.append('    return params[0]')
+#         
+#         else:
+#             handled = False
+#         
+#         if handled:
+#             functions_auto.add(des.name)
+#         else:
+#             functions_todo.add(des.name)
+#             lines.append('# todo: Dont know group %s' % des.name)
+
+
 
 class AngleApiGenrator(DesktopApiGenerator):
     filename = os.path.join(GLDIR, '_angle.py')
@@ -604,13 +723,14 @@ class AngleApiGenrator(DesktopApiGenerator):
     """
 
 
+
 ## Generate
 
 # Get functions
 functions = combine_function_definitions()
 
 # Generate
-for Gen in [MainApiGenerator, DesktopApiGenerator, AngleApiGenrator]:
+for Gen in [MainApiGenerator, DesktopApiGenerator, AngleApiGenrator, CompatApiGenrator]:
     gen = Gen()
     for des in functions:
         gen.add_function(des)
@@ -629,4 +749,3 @@ print('Could generate %i functions automatically, and %i with annotations' %
 print('Need more info for %i functions.' % len(functions_todo))
 if not functions_todo:
     print('Hooray! All %i functions are covered!' % len(functions))
-

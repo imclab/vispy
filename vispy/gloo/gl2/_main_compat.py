@@ -5,491 +5,495 @@ THIS CODE IS AUTO-GENERATED. DO NOT EDIT.
 GL API X
 
 """
-def activeTexture(texture):
+
+from .import _main
+PROXY = _main.__dict__
+
+def glActiveTexture(texture):
     return PROXY["activeTexture"](texture)
 
 
-def attachShader(program, shader):
+def glAttachShader(program, shader):
     return PROXY["attachShader"](program, shader)
 
 
-def bindAttribLocation(program, index, name):
+def glBindAttribLocation(program, index, name):
     return PROXY["bindAttribLocation"](program, index, name)
 
 
-def bindBuffer(target, buffer):
+def glBindBuffer(target, buffer):
     return PROXY["bindBuffer"](target, buffer)
 
 
-def bindFramebuffer(target, framebuffer):
+def glBindFramebuffer(target, framebuffer):
     return PROXY["bindFramebuffer"](target, framebuffer)
 
 
-def bindRenderbuffer(target, renderbuffer):
+def glBindRenderbuffer(target, renderbuffer):
     return PROXY["bindRenderbuffer"](target, renderbuffer)
 
 
-def bindTexture(target, texture):
+def glBindTexture(target, texture):
     return PROXY["bindTexture"](target, texture)
 
 
-def blendColor(red, green, blue, alpha):
+def glBlendColor(red, green, blue, alpha):
     return PROXY["blendColor"](red, green, blue, alpha)
 
 
-def blendEquation(mode):
+def glBlendEquation(mode):
     return PROXY["blendEquation"](mode)
 
 
-def blendEquationSeparate(modeRGB, modeAlpha):
+def glBlendEquationSeparate(modeRGB, modeAlpha):
     return PROXY["blendEquationSeparate"](modeRGB, modeAlpha)
 
 
-def blendFunc(sfactor, dfactor):
+def glBlendFunc(sfactor, dfactor):
     return PROXY["blendFunc"](sfactor, dfactor)
 
 
-def blendFuncSeparate(srcRGB, dstRGB, srcAlpha, dstAlpha):
+def glBlendFuncSeparate(srcRGB, dstRGB, srcAlpha, dstAlpha):
     return PROXY["blendFuncSeparate"](srcRGB, dstRGB, srcAlpha, dstAlpha)
 
 
-def bufferData(target, data, usage):
+def glBufferData(target, data, usage):
     return PROXY["bufferData"](target, data, usage)
 
 
-def bufferSubData(target, offset, data):
+def glBufferSubData(target, offset, data):
     return PROXY["bufferSubData"](target, offset, data)
 
 
-def checkFramebufferStatus(target):
+def glCheckFramebufferStatus(target):
     return PROXY["checkFramebufferStatus"](target)
 
 
-def clear(mask):
+def glClear(mask):
     return PROXY["clear"](mask)
 
 
-def clearColor(red, green, blue, alpha):
+def glClearColor(red, green, blue, alpha):
     return PROXY["clearColor"](red, green, blue, alpha)
 
 
-def clearDepthf(depth):
+def glClearDepthf(depth):
     return PROXY["clearDepthf"](depth)
 
 
-def clearStencil(s):
+def glClearStencil(s):
     return PROXY["clearStencil"](s)
 
 
-def colorMask(red, green, blue, alpha):
+def glColorMask(red, green, blue, alpha):
     return PROXY["colorMask"](red, green, blue, alpha)
 
 
-def compileShader(shader):
+def glCompileShader(shader):
     return PROXY["compileShader"](shader)
 
 
-def compressedTexImage2D(target, level, internalformat, width=0, height=0, border=0, data=None):
+def glCompressedTexImage2D(target, level, internalformat, width=0, height=0, border=0, data=None):
     return PROXY["compressedTexImage2D"](target, level, internalformat, width=0, height=0, border=0, data=None)
 
 
-def compressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, data):
+def glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, data):
     return PROXY["compressedTexSubImage2D"](target, level, xoffset, yoffset, width, height, format, data)
 
 
-def copyTexImage2D(target, level, internalformat, x, y, width, height, border):
+def glCopyTexImage2D(target, level, internalformat, x, y, width, height, border):
     return PROXY["copyTexImage2D"](target, level, internalformat, x, y, width, height, border)
 
 
-def copyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height):
+def glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height):
     return PROXY["copyTexSubImage2D"](target, level, xoffset, yoffset, x, y, width, height)
 
 
-def createProgram():
+def glCreateProgram():
     return PROXY["createProgram"]()
 
 
-def createShader(type):
+def glCreateShader(type):
     return PROXY["createShader"](type)
 
 
-def cullFace(mode):
+def glCullFace(mode):
     return PROXY["cullFace"](mode)
 
 
-def deleteBuffer(buffer):
+def glDeleteBuffer(buffer):
     return PROXY["deleteBuffer"](buffer)
 
 
-def deleteFramebuffer(framebuffer):
+def glDeleteFramebuffer(framebuffer):
     return PROXY["deleteFramebuffer"](framebuffer)
 
 
-def deleteProgra(program):
+def glDeleteProgra(program):
     return PROXY["deleteProgra"](program)
 
 
-def deleteRenderbuffer(renderbuffer):
+def glDeleteRenderbuffer(renderbuffer):
     return PROXY["deleteRenderbuffer"](renderbuffer)
 
 
-def deleteShade(shader):
+def glDeleteShade(shader):
     return PROXY["deleteShade"](shader)
 
 
-def deleteTexture(texture):
+def glDeleteTexture(texture):
     return PROXY["deleteTexture"](texture)
 
 
-def depthFunc(func):
+def glDepthFunc(func):
     return PROXY["depthFunc"](func)
 
 
-def depthMask(flag):
+def glDepthMask(flag):
     return PROXY["depthMask"](flag)
 
 
-def depthRangef(zNear, zFar):
+def glDepthRangef(zNear, zFar):
     return PROXY["depthRangef"](zNear, zFar)
 
 
-def detachShader(program, shader):
+def glDetachShader(program, shader):
     return PROXY["detachShader"](program, shader)
 
 
-def disable(cap):
+def glDisable(cap):
     return PROXY["disable"](cap)
 
 
-def disableVertexAttribArray(index):
+def glDisableVertexAttribArray(index):
     return PROXY["disableVertexAttribArray"](index)
 
 
-def drawArrays(mode, first, count):
+def glDrawArrays(mode, first, count):
     return PROXY["drawArrays"](mode, first, count)
 
 
-def drawElements(mode, count, type, offset):
+def glDrawElements(mode, count, type, offset):
     return PROXY["drawElements"](mode, count, type, offset)
 
 
-def enable(cap):
+def glEnable(cap):
     return PROXY["enable"](cap)
 
 
-def enableVertexAttribArray(index):
+def glEnableVertexAttribArray(index):
     return PROXY["enableVertexAttribArray"](index)
 
 
-def finish():
+def glFinish():
     return PROXY["finish"]()
 
 
-def flush():
+def glFlush():
     return PROXY["flush"]()
 
 
-def framebufferRenderbuffer(target, attachment, renderbuffertarget, renderbuffer):
+def glFramebufferRenderbuffer(target, attachment, renderbuffertarget, renderbuffer):
     return PROXY["framebufferRenderbuffer"](target, attachment, renderbuffertarget, renderbuffer)
 
 
-def framebufferTexture2D(target, attachment, textarget, texture, level):
+def glFramebufferTexture2D(target, attachment, textarget, texture, level):
     return PROXY["framebufferTexture2D"](target, attachment, textarget, texture, level)
 
 
-def frontFace(mode):
+def glFrontFace(mode):
     return PROXY["frontFace"](mode)
 
 
-def createBuffer():
+def glCreateBuffer():
     return PROXY["createBuffer"]()
 
 
-def createFramebuffer():
+def glCreateFramebuffer():
     return PROXY["createFramebuffer"]()
 
 
-def createRenderbuffer():
+def glCreateRenderbuffer():
     return PROXY["createRenderbuffer"]()
 
 
-def createTexture():
+def glCreateTexture():
     return PROXY["createTexture"]()
 
 
-def createerateMipma(target):
+def glCreateerateMipma(target):
     return PROXY["createerateMipma"](target)
 
 
-def getActiveAttrib(program, index):
+def glGetActiveAttrib(program, index):
     return PROXY["getActiveAttrib"](program, index)
 
 
-def getActiveUniform(program, index):
+def glGetActiveUniform(program, index):
     return PROXY["getActiveUniform"](program, index)
 
 
-def getAttachedShaders(program):
+def glGetAttachedShaders(program):
     return PROXY["getAttachedShaders"](program)
 
 
-def getAttribLocation(program, name):
+def glGetAttribLocation(program, name):
     return PROXY["getAttribLocation"](program, name)
 
 
-def getBooleanv(pname):
+def glGetBooleanv(pname):
     return PROXY["getBooleanv"](pname)
 
 
-def getBufferParameteriv(target, pname):
+def glGetBufferParameteriv(target, pname):
     return PROXY["getBufferParameteriv"](target, pname)
 
 
-def getError():
+def glGetError():
     return PROXY["getError"]()
 
 
-def getFloatv(pname):
+def glGetFloatv(pname):
     return PROXY["getFloatv"](pname)
 
 
-def getFramebufferAttachmentParameteriv(target, attachment, pname):
+def glGetFramebufferAttachmentParameteriv(target, attachment, pname):
     return PROXY["getFramebufferAttachmentParameteriv"](target, attachment, pname)
 
 
-def getIntegerv(pname):
+def glGetIntegerv(pname):
     return PROXY["getIntegerv"](pname)
 
 
-def getProgramInfoLog(program):
+def glGetProgramInfoLog(program):
     return PROXY["getProgramInfoLog"](program)
 
 
-def getProgramiv(program, pname):
+def glGetProgramiv(program, pname):
     return PROXY["getProgramiv"](program, pname)
 
 
-def getRenderbufferParameteriv(target, pname):
+def glGetRenderbufferParameteriv(target, pname):
     return PROXY["getRenderbufferParameteriv"](target, pname)
 
 
-def getShaderInfoLog(shader):
+def glGetShaderInfoLog(shader):
     return PROXY["getShaderInfoLog"](shader)
 
 
-def getShaderPrecisionFormat(shadertype, precisiontype):
+def glGetShaderPrecisionFormat(shadertype, precisiontype):
     return PROXY["getShaderPrecisionFormat"](shadertype, precisiontype)
 
 
-def getShaderSource(shader):
+def glGetShaderSource(shader):
     return PROXY["getShaderSource"](shader)
 
 
-def getShaderiv(shader, pname):
+def glGetShaderiv(shader, pname):
     return PROXY["getShaderiv"](shader, pname)
 
 
-def getString(pname):
+def glGetString(pname):
     return PROXY["getString"](pname)
 
 
-def getTexParameterfv(target, pname):
+def glGetTexParameterfv(target, pname):
     return PROXY["getTexParameterfv"](target, pname)
-def getTexParameteriv(target, pname):
+def glGetTexParameteriv(target, pname):
     return PROXY["getTexParameteriv"](target, pname)
 
 
-def getUniformfv(program, location):
+def glGetUniformfv(program, location):
     return PROXY["getUniformfv"](program, location)
-def getUniformiv(program, location):
+def glGetUniformiv(program, location):
     return PROXY["getUniformiv"](program, location)
 
 
-def getUniformLocation(program, name):
+def glGetUniformLocation(program, name):
     return PROXY["getUniformLocation"](program, name)
 
 
-def getVertexAttribfv(index, pname):
+def glGetVertexAttribfv(index, pname):
     return PROXY["getVertexAttribfv"](index, pname)
-def getVertexAttribiv(index, pname):
+def glGetVertexAttribiv(index, pname):
     return PROXY["getVertexAttribiv"](index, pname)
 
 
-def getVertexAttribPointerv(index, pname):
+def glGetVertexAttribPointerv(index, pname):
     return PROXY["getVertexAttribPointerv"](index, pname)
 
 
-def hint(target, mode):
+def glHint(target, mode):
     return PROXY["hint"](target, mode)
 
 
-def isBuffer(buffer):
+def glIsBuffer(buffer):
     return PROXY["isBuffer"](buffer)
 
 
-def isEnabled(cap):
+def glIsEnabled(cap):
     return PROXY["isEnabled"](cap)
 
 
-def isFramebuffer(framebuffer):
+def glIsFramebuffer(framebuffer):
     return PROXY["isFramebuffer"](framebuffer)
 
 
-def isProgram(program):
+def glIsProgram(program):
     return PROXY["isProgram"](program)
 
 
-def isRenderbuffer(renderbuffer):
+def glIsRenderbuffer(renderbuffer):
     return PROXY["isRenderbuffer"](renderbuffer)
 
 
-def isShader(shader):
+def glIsShader(shader):
     return PROXY["isShader"](shader)
 
 
-def isTexture(texture):
+def glIsTexture(texture):
     return PROXY["isTexture"](texture)
 
 
-def lineWidth(width):
+def glLineWidth(width):
     return PROXY["lineWidth"](width)
 
 
-def linkProgram(program):
+def glLinkProgram(program):
     return PROXY["linkProgram"](program)
 
 
-def pixelStorei(pname, param):
+def glPixelStorei(pname, param):
     return PROXY["pixelStorei"](pname, param)
 
 
-def polygonOffset(factor, units):
+def glPolygonOffset(factor, units):
     return PROXY["polygonOffset"](factor, units)
 
 
-def readPixels(x, y, width, height, format, type):
+def glReadPixels(x, y, width, height, format, type):
     return PROXY["readPixels"](x, y, width, height, format, type)
 
 
-def renderbufferStorage(target, internalformat, width, height):
+def glRenderbufferStorage(target, internalformat, width, height):
     return PROXY["renderbufferStorage"](target, internalformat, width, height)
 
 
-def sampleCoverage(value, invert):
+def glSampleCoverage(value, invert):
     return PROXY["sampleCoverage"](value, invert)
 
 
-def scissor(x, y, width, height):
+def glScissor(x, y, width, height):
     return PROXY["scissor"](x, y, width, height)
 
 
-def shaderSource(shader, *strings):
+def glShaderSource(shader, *strings):
     return PROXY["shaderSource"](shader, *strings)
 
 
-def stencilFunc(func, ref, mask):
+def glStencilFunc(func, ref, mask):
     return PROXY["stencilFunc"](func, ref, mask)
 
 
-def stencilFuncSeparate(face, func, ref, mask):
+def glStencilFuncSeparate(face, func, ref, mask):
     return PROXY["stencilFuncSeparate"](face, func, ref, mask)
 
 
-def stencilMask(mask):
+def glStencilMask(mask):
     return PROXY["stencilMask"](mask)
 
 
-def stencilMaskSeparate(face, mask):
+def glStencilMaskSeparate(face, mask):
     return PROXY["stencilMaskSeparate"](face, mask)
 
 
-def stencilOp(fail, zfail, zpass):
+def glStencilOp(fail, zfail, zpass):
     return PROXY["stencilOp"](fail, zfail, zpass)
 
 
-def stencilOpSeparate(face, fail, zfail, zpass):
+def glStencilOpSeparate(face, fail, zfail, zpass):
     return PROXY["stencilOpSeparate"](face, fail, zfail, zpass)
 
 
-def texImage2D(target, level, internalformat, format, type, pixels):
+def glTexImage2D(target, level, internalformat, format, type, pixels):
     return PROXY["texImage2D"](target, level, internalformat, format, type, pixels)
 
 
-def texParameterf(target, pname, param):
+def glTexParameterf(target, pname, param):
     return PROXY["texParameterf"](target, pname, param)
-def texParameteri(target, pname, param):
+def glTexParameteri(target, pname, param):
     return PROXY["texParameteri"](target, pname, param)
 
 
-def texSubImage2D(target, level, xoffset, yoffset, format, type, pixels):
+def glTexSubImage2D(target, level, xoffset, yoffset, format, type, pixels):
     return PROXY["texSubImage2D"](target, level, xoffset, yoffset, format, type, pixels)
 
 
-def uniform1f(location, v1):
+def glUniform1f(location, v1):
     return PROXY["uniform1f"](location, v1)
-def uniform2f(location, v1, v2):
+def glUniform2f(location, v1, v2):
     return PROXY["uniform2f"](location, v1, v2)
-def uniform3f(location, v1, v2, v3):
+def glUniform3f(location, v1, v2, v3):
     return PROXY["uniform3f"](location, v1, v2, v3)
-def uniform4f(location, v1, v2, v3, v4):
+def glUniform4f(location, v1, v2, v3, v4):
     return PROXY["uniform4f"](location, v1, v2, v3, v4)
-def uniform1i(location, v1):
+def glUniform1i(location, v1):
     return PROXY["uniform1i"](location, v1)
-def uniform2i(location, v1, v2):
+def glUniform2i(location, v1, v2):
     return PROXY["uniform2i"](location, v1, v2)
-def uniform3i(location, v1, v2, v3):
+def glUniform3i(location, v1, v2, v3):
     return PROXY["uniform3i"](location, v1, v2, v3)
-def uniform4i(location, v1, v2, v3, v4):
+def glUniform4i(location, v1, v2, v3, v4):
     return PROXY["uniform4i"](location, v1, v2, v3, v4)
-def uniform1fv(location, count, values):
+def glUniform1fv(location, count, values):
     return PROXY["uniform1fv"](location, count, values)
-def uniform2fv(location, count, values):
+def glUniform2fv(location, count, values):
     return PROXY["uniform2fv"](location, count, values)
-def uniform3fv(location, count, values):
+def glUniform3fv(location, count, values):
     return PROXY["uniform3fv"](location, count, values)
-def uniform4fv(location, count, values):
+def glUniform4fv(location, count, values):
     return PROXY["uniform4fv"](location, count, values)
-def uniform1iv(location, count, values):
+def glUniform1iv(location, count, values):
     return PROXY["uniform1iv"](location, count, values)
-def uniform2iv(location, count, values):
+def glUniform2iv(location, count, values):
     return PROXY["uniform2iv"](location, count, values)
-def uniform3iv(location, count, values):
+def glUniform3iv(location, count, values):
     return PROXY["uniform3iv"](location, count, values)
-def uniform4iv(location, count, values):
+def glUniform4iv(location, count, values):
     return PROXY["uniform4iv"](location, count, values)
 
 
-def uniformMatrix2fv(location, count, transpose, values):
+def glUniformMatrix2fv(location, count, transpose, values):
     return PROXY["uniformMatrix2fv"](location, count, transpose, values)
-def uniformMatrix3fv(location, count, transpose, values):
+def glUniformMatrix3fv(location, count, transpose, values):
     return PROXY["uniformMatrix3fv"](location, count, transpose, values)
-def uniformMatrix4fv(location, count, transpose, values):
+def glUniformMatrix4fv(location, count, transpose, values):
     return PROXY["uniformMatrix4fv"](location, count, transpose, values)
 
 
-def useProgram(program):
+def glUseProgram(program):
     return PROXY["useProgram"](program)
 
 
-def validateProgram(program):
+def glValidateProgram(program):
     return PROXY["validateProgram"](program)
 
 
-def vertexAttrib1f(index, v1):
+def glVertexAttrib1f(index, v1):
     return PROXY["vertexAttrib1f"](index, v1)
-def vertexAttrib2f(index, v1, v2):
+def glVertexAttrib2f(index, v1, v2):
     return PROXY["vertexAttrib2f"](index, v1, v2)
-def vertexAttrib3f(index, v1, v2, v3):
+def glVertexAttrib3f(index, v1, v2, v3):
     return PROXY["vertexAttrib3f"](index, v1, v2, v3)
-def vertexAttrib4f(index, v1, v2, v3, v4):
+def glVertexAttrib4f(index, v1, v2, v3, v4):
     return PROXY["vertexAttrib4f"](index, v1, v2, v3, v4)
 
 
-def vertexAttribPointer(indx, size, type, normalized, stride, offset):
+def glVertexAttribPointer(indx, size, type, normalized, stride, offset):
     return PROXY["vertexAttribPointer"](indx, size, type, normalized, stride, offset)
 
 
-def viewport(x, y, width, height):
+def glViewport(x, y, width, height):
     return PROXY["viewport"](x, y, width, height)
 
 

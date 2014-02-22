@@ -141,5 +141,6 @@ class Canvas(app.Canvas):
 
 if __name__ == '__main__':
     c = Canvas()
+    c.measure_fps()
     c.show()
     app.run()
